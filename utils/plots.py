@@ -577,6 +577,11 @@ def plot_skeleton_kpts(im, kpts, steps, orig_shape=None):
                 conf = kpts[steps * kid + 2]
                 if conf < 0.5:
                     continue
+            font = cv2.FONT_HERSHEY_SIMPLEX
+            font_scale = 0.5
+            thickness = 1
+            text_pos = (int(x_coord), int(y_coord) - 10)
+            cv2.putText(im, str(kid), text_pos, font, font_scale, (int(r), int(g), int(b)), thickness)
             cv2.circle(im, (int(x_coord), int(y_coord)), radius, (int(r), int(g), int(b)), -1)
 
     for sk_id, sk in enumerate(skeleton):
@@ -593,3 +598,22 @@ def plot_skeleton_kpts(im, kpts, steps, orig_shape=None):
         if pos2[0] % 640 == 0 or pos2[1] % 640 == 0 or pos2[0]<0 or pos2[1]<0:
             continue
         cv2.line(im, pos1, pos2, (int(r), int(g), int(b)), thickness=2)
+
+
+def output_tracking(bboxs, keypoints, height, width, cls, frame):
+
+    result = []
+
+    for box in bboxs:
+        x1, y1, x2, y2, id = box
+        box_coords = [id, cls, frame, width, height, x1, y1, x2, y2]
+        kp_coords = []
+        for kptArr in keypoints:
+            if kptArr[15] >= x1 and kptArr[15] <= x2 and kptArr[16] >= y1 and kptArr[16] <= y2 and kptArr[18] >= x1 and kptArr[18] <= x2 and kptArr[19] >= y1 and kptArr[19] <= y2 and kptArr[33] >= x1 and kptArr[33] <= x2 and kptArr[34] >= y1 and kptArr[34] <= y2 and kptArr[36] >= x1 and kptArr[36] <= x2 and kptArr[37] >= y1 and kptArr[37] <= y2:
+                for j in range(0, len(kptArr), 3):
+                    x, y, z = kptArr[j:j+3]
+                    kp_coords.extend([x, y])        
+                if len(kp_coords) > 0:
+                    result.append(box_coords + kp_coords)
+
+    return result

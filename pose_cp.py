@@ -22,19 +22,21 @@ from utils.plots import output_to_keypoint, plot_skeleton_kpts,colors,plot_one_b
 import skimage
 from sort import *
 
-#For SORT tracking
-import skimage
-from sort import *
-
-DIRECTORY_VIDEO_PATH="D:/DOCUMENTS/HK222/DA1/LRCN/LRCN_OP_YOLO/datos/NTURGBD/VIDEOS_50_120"
-OUTPUT_DIRECTORY="D:/DOCUMENTS/HK222/DA1/LRCN/LRCN_OP_YOLO/datos/NTURGBD/DATOS-YOLO5"
-weights = "D:/AI_MC/Action_Recognition/yolov7-pose-estimation/yolov7-w6-pose.pt"
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
+# Inicializamos el modelo YOLO5
+# set_logging()
+device = select_device('')
+half = device.type != 'cpu'
 
 
+DIRECTORY_VIDEO_PATH="/content/drive/MyDrive/GOOGLE_COLAB/LRCN/LRCN_OP_YOLO/datos/NTURGBD/VIDEOS_50_120"
+OUTPUT_DIRECTORY="/content/drive/MyDrive/GOOGLE_COLAB/LRCN/YoloV7_Pose_estimate_and_Tracking/Data_YLP"
+weights = "yolov7-w6-pose.pt"
 
-def detect(poseweights=weights,source="football1.mp4",device='cpu',view_img=False,
-        save_conf=False,line_thickness = 3,hide_labels=False, hide_conf=True, action = None):
-    for idz, cls_ac in enumerate(['fighting', 'smoking', 'standing_up']):
+
+
+def detect(poseweights=weights,source="football1.mp4",device='cpu',view_img=False, save_conf=False,line_thickness = 3,hide_labels=False, hide_conf=True, action = None):
+    for idz, cls_ac in enumerate(['fighting', 'smoking','normalaction' ,'standing_up']):
         if action == cls_ac: action = idz
     frame_count = 0  #count no of frames
     total_fps = 0  #count total fps
@@ -77,26 +79,26 @@ def detect(poseweights=weights,source="football1.mp4",device='cpu',view_img=Fals
         print('Error while trying to read video. Please check path again')
         raise SystemExit()
 
-    while(True):
+    else:
         frame_width = int(cap.get(3))  #get video frame width
         frame_height = int(cap.get(4)) #get video frame height
 
         
-        vid_write_image = letterbox(cap.read()[1], (frame_width), stride=64, auto=True)[0] #init videowriter
-        resize_height, resize_width = vid_write_image.shape[:2]
-        out_video_name = f"{source.split('/')[-1].split('.')[0]}"
-        out = cv2.VideoWriter(f"{source}_keypoint.mp4",
-                            cv2.VideoWriter_fourcc(*'mp4v'), 30,
-                            (resize_width, resize_height))
+        # vid_write_image = letterbox(cap.read()[1], (frame_width), stride=64, auto=True)[0] #init videowriter
+        # resize_height, resize_width = vid_write_image.shape[:2]
+        # out_video_name = f"{source.split('/')[-1].split('.')[0]}"
+        # out = cv2.VideoWriter(f"{source}_keypoint.mp4",
+        #                     cv2.VideoWriter_fourcc(*'mp4v'), 30,
+        #                     (resize_width, resize_height))
 
         while(cap.isOpened): #loop until cap opened or video not complete
         
-            print("Frame {} Processing".format(frame_count+1))
+            print("Frame {} Processing".format(frame_count))
 
             ret, frame = cap.read()  #get frame and success from video capture
-            frame_h, frame_w, channels = frame.shape
-            print("h", frame_h, "w", frame_w, ret)
-            if ret: #if success is true, means frame exist
+            # frame_h, frame_w, channels = frame.shape
+            # print("h", frame_height, "w", frame_width, ret)
+            if ret : #if success is true, means frame exist
                 orig_image = frame #store frame
                 image = cv2.cvtColor(orig_image, cv2.COLOR_BGR2RGB) #convert frame to RGB
                 image = letterbox(image, (frame_width), stride=64, auto=True)[0]
@@ -156,12 +158,12 @@ def detect(poseweights=weights,source="football1.mp4",device='cpu',view_img=Fals
                             kpts = pose[det_index, 6:]
                             kpt_t.append(kpts.tolist())
 
-                            label = None if opt.hide_labels else (names[c] if opt.hide_conf else f'{names[c]} {conf:.2f}')
+                            label = None if False else (names[c] if False else f'{names[c]} {conf:.2f}')
                             plot_one_box_kpt(xyxy, im0, label=label, color=colors(c, True), 
-                                        line_thickness=opt.line_thickness,kpt_label=True, kpts=kpts, steps=3, 
+                                        line_thickness=3,kpt_label=True, kpts=kpts, steps=3, 
                                         orig_shape=im0.shape[:2], conf = conf , cls = cls, names= names, sort_tracker = sort_tracker, rand_color_list =  rand_color_list,tracks = tracks, tracked_dets = tracked_dets )
                                 
-                        kptDt = output_tracking(bboxs =bb_track, keypoints = kpt_t, height = frame_h, width =frame_w, cls =1, frame = frame_count )
+                        kptDt = output_tracking(bboxs =bb_track, keypoints = kpt_t, height = frame_height, width =frame_width, cls =1, frame = frame_count )
                         # print(kptDt)
                         final_kpts.append(kptDt)
 
@@ -174,11 +176,11 @@ def detect(poseweights=weights,source="football1.mp4",device='cpu',view_img=Fals
                 time_list.append(end_time - start_time) #append time in list
                 
                 # Stream results
-                if view_img:
-                    cv2.imshow("YOLOv7 Pose Estimation Demo", im0)
-                    cv2.waitKey(1)  # 1 millisecond
+                # if view_img:
+                #     cv2.imshow("YOLOv7 Pose Estimation Demo", im0)
+                #     cv2.waitKey(1)  # 1 millisecond
 
-                out.write(im0)  #writing the video frame
+                # out.write(im0)  #writing the video frame
 
             else:
                 break
@@ -207,7 +209,7 @@ start=sys.argv[1]
 
 for base, dirs, files in sorted(os.walk(DIRECTORY_VIDEO_PATH)):
     action = base.split(os.path.sep)[-1]
-    # print(files)
+    # print(base, dirs, files)
 
     if start != "VIDEOS":    
         print("Process accion: " + action + " ...")
@@ -215,22 +217,21 @@ for base, dirs, files in sorted(os.walk(DIRECTORY_VIDEO_PATH)):
         if not os.path.exists(OUTPUT_DIRECTORY + '/' + start):
             print(OUTPUT_DIRECTORY + '/' + start)
             os.mkdir(OUTPUT_DIRECTORY + '/' + start)        
-        
-
-    # for video in files:
-    #     print(video)
-    #     print("--Procesando: " + video) 
-    #     video_extension = os.path.splitext(video)[0]
-
-    #     # Si el archivo ya existe lo omitimos
-    #     dat_ouput = OUTPUT_DIRECTORY + "/" + action + "/" + video_extension + ".dat"
-    #     if not os.path.exists(dat_ouput):  
+    print(dirs)
+    if action == start :
+      for video in files:
+          print("--Procesando: " + video) 
+          video_extension = os.path.splitext(video)[0]
+          print(video_extension)
+          # Si el archivo ya existe lo omitimos
+          dat_ouput = OUTPUT_DIRECTORY + "/" + start + "/" + video_extension + ".dat"
+          if not os.path.exists(dat_ouput):  
+      
+              result = detect(source = (DIRECTORY_VIDEO_PATH + '/' + action + '/' + video), action = start)
+      
+              # Escribimos el fichero
+              with open(dat_ouput, 'a+') as f:
+                  f.write(str(result))
+                  f.close()
     
-    #         result = detect(source = (DIRECTORY_VIDEO_PATH + '/' + action + '/' + video), action = start)
-    
-    #         # Escribimos el fichero
-    #         with open(dat_ouput, 'a+') as f:
-    #             f.write(result)
-    #             f.close()
-    
-# print("Proceso terminado correctamente.")
+print("Proceso terminado correctamente.")
